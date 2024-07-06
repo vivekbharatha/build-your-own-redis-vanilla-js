@@ -1,0 +1,11 @@
+{
+  "name": "build-your-own-redis-vanilla-nodejs",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "vivek bharatha",
+  "license": "MIT"
+}
