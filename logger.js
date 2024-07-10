@@ -17,7 +17,7 @@ const logger = (namespace) => {
   };
 
   return {
-    log: (message) => log("log", message),
+    info: (message) => log("log", message),
     error: (message) => log("error", message),
     warn: (message) => log("warn", message),
     debug: (message) => log("debug", message),
