@@ -1,4 +1,4 @@
-const logger = require("./logger")("core");
+const logger = require("./utils/logger")("core");
 
 const store = {};
 const expirationTimes = {};
@@ -71,6 +71,64 @@ const commandHandlers = {
     expirationTimes[key] = Date.now() + seconds * 1000;
 
     return ":1\r\n";
+  },
+  TTL: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'ttl' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (!store[key]) return ":-2\r\n";
+
+    if (!expirationTimes[key]) return ":-1\r\n";
+
+    const ttl = Math.floor((expirationTimes[key] - Date.now()) / 1000);
+
+    return ttl > 0 ? `:${ttl}\r\n` : ":-2\r\n";
+  },
+  INCR: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'incr' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (!store[key]) {
+      store[key] = { type: "string", value: "1" };
+
+      return ":1\r\n";
+    }
+
+    const value = parseInt(store[key].value, 10);
+
+    if (isNaN(value)) return "-ERR value is not an integer or out of range\r\n";
+    store[key].value = (value + 1).toString();
+
+    return `:${value + 1}\r\n`;
+  },
+  DECR: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'decr' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (!store[key]) {
+      store[key] = { type: "string", value: "-1" };
+
+      return ":-1\r\n";
+    }
+
+    const value = parseInt(store[key].value, 10);
+
+    if (isNaN(value)) {
+      return "-ERR value is not an integer or out of range\r\n";
+    }
+
+    store[key].value = (value - 1).toString();
+
+    return `:${value - 1}\r\n`;
   },
   COMMAND: () => "+OK\r\n",
 };

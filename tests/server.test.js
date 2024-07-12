@@ -1,7 +1,7 @@
 const net = require("net");
 const assert = require("node:assert");
 const { before, after, test } = require("node:test");
-const { buildRedisCommand } = require("./utils");
+const { buildRedisCommand } = require("../src/utils");
 
 let redisClient; // Redis client instance
 
@@ -85,4 +85,78 @@ test("should EXPIRE a key", async () => {
 test("should handle unknown commands gracefully", async () => {
   const response = await sendCommand("UNKNOWN test");
   assert.strictEqual(response, "-ERR unknown command\r\n");
+});
+
+test("should return correct TTL for a key and error cases", async () => {
+  await sendCommand("set fooT expT");
+  const expireResponse = await sendCommand("expire fooT 5");
+  assert.strictEqual(expireResponse, ":1\r\n");
+
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const getResponse = await sendCommand("ttl fooT");
+  console.log(getResponse);
+  const match = getResponse.match(/^:(\d+)\r\n$/);
+  const ttlValue = parseInt(match[1]);
+
+  // As timeout wont be exact 2 seconds
+  assert.ok(ttlValue <= 3, "Expected ttlValue to be less than or equal to 3");
+
+  const errorResponse = await sendCommand("ttl");
+  assert.strictEqual(
+    errorResponse,
+    "-ERR wrong number of arguments for 'ttl' command\r\n"
+  );
+});
+
+test("should INCR a key and error cases", async () => {
+  await sendCommand("set fooI 5");
+
+  const response1 = await sendCommand("incr fooI");
+  assert.strictEqual(response1, ":6\r\n");
+
+  const getResponse = await sendCommand("get fooI");
+  assert.strictEqual(getResponse, "$1\r\n6\r\n");
+
+  const response2 = await sendCommand("incr");
+  assert.strictEqual(
+    response2,
+    "-ERR wrong number of arguments for 'incr' command\r\n"
+  );
+
+  await sendCommand("set fooInvali tada1");
+  const errorResponse = await sendCommand("incr fooInvali");
+  assert.strictEqual(
+    errorResponse,
+    "-ERR value is not an integer or out of range\r\n"
+  );
+
+  const response3 = await sendCommand("incr fooNewKey1");
+  assert.strictEqual(response3, ":1\r\n");
+});
+
+test("should DECR a key and error cases", async () => {
+  await sendCommand("set fooD 11");
+
+  const response1 = await sendCommand("decr fooD");
+  assert.strictEqual(response1, ":10\r\n");
+
+  const getResponse = await sendCommand("get fooD");
+  assert.strictEqual(getResponse, "$2\r\n10\r\n");
+
+  const response2 = await sendCommand("decr");
+  assert.strictEqual(
+    response2,
+    "-ERR wrong number of arguments for 'decr' command\r\n"
+  );
+
+  await sendCommand("set fooInvali tada2");
+  const errorResponse = await sendCommand("decr fooInvali");
+  assert.strictEqual(
+    errorResponse,
+    "-ERR value is not an integer or out of range\r\n"
+  );
+
+  const response3 = await sendCommand("decr fooNewKey2");
+  assert.strictEqual(response3, ":-1\r\n");
 });

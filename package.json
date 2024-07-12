@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node --watch server.js",
-    "test": "node server.test.js"
+    "start": "node --watch src/server.js",
+    "test": "node tests/server.test.js"
   },
   "keywords": [],
   "author": "vivek bharatha",
