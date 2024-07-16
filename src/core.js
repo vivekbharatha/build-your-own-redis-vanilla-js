@@ -130,6 +130,108 @@ const commandHandlers = {
 
     return `:${value - 1}\r\n`;
   },
+  LRANGE: (args) => {
+    if (args.length < 3) {
+      return "-ERR wrong number of arguments for 'lrange' command\r\n";
+    }
+
+    const [key, start, stop] = args;
+
+    if (checkExpiry(key) || !store[key] || store[key].type !== "list") {
+      return "$-1\r\n";
+    }
+
+    const list = store[key].value;
+    const startIndex = parseInt(start, 10);
+    const stopIndex = parseInt(stop, 10);
+    const range = list.slice(startIndex, stopIndex + 1);
+
+    let response = `*${range.length}\r\n`;
+
+    range.forEach((value) => {
+      response += `$${value.length}\r\n${value}\r\n`;
+    });
+
+    return response;
+  },
+  LPUSH: (args) => {
+    if (args.length < 2) {
+      return "-ERR wrong number of arguments for 'lpush' command\r\n";
+    }
+
+    const [key, ...values] = args;
+
+    if (!store[key]) {
+      store[key] = { type: "list", value: [] };
+    }
+
+    if (store[key].type !== "list") {
+      return "-ERR wrong type of key\r\n";
+    }
+
+    store[key].value.unshift(...values);
+
+    return `:${store[key].value.length}\r\n`;
+  },
+  RPUSH: (args) => {
+    if (args.length < 2) {
+      return "-ERR wrong number of arguments for 'rpush' command\r\n";
+    }
+
+    const [key, ...values] = args;
+
+    if (!store[key]) {
+      store[key] = { type: "list", value: [] };
+    }
+
+    if (store[key].type !== "list") {
+      return "-ERR wrong type of key\r\n";
+    }
+
+    store[key].value.push(...values);
+
+    return `:${store[key].value.length}\r\n`;
+  },
+  LPOP: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'lpop' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (
+      checkExpiry(key) ||
+      !store[key] ||
+      store[key].type !== "list" ||
+      store[key].value.length === 0
+    ) {
+      return "$-1\r\n";
+    }
+
+    const value = store[key].value.shift();
+
+    return `$${value.length}\r\n${value}\r\n`;
+  },
+  RPOP: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'rpop' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (
+      checkExpiry(key) ||
+      !store[key] ||
+      store[key].type !== "list" ||
+      store[key].value.length === 0
+    ) {
+      return "$-1\r\n";
+    }
+
+    const value = store[key].value.pop();
+
+    return `$${value.length}\r\n${value}\r\n`;
+  },
   COMMAND: () => "+OK\r\n",
 };
 
